@@ -90,7 +90,7 @@ Criar uma seção por execução relevante, contendo data, ambiente, comando, c�
 
 ## Rastreabilidade da implementação local
 
-Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. As métricas e comandos datados estão em `docs/testes.md`. A execução de Docker, CI remoto e macOS permanece separadamente pendente; existência de configuração não é validação.
+Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. As métricas e comandos datados estão em `docs/testes.md`. A execução de Docker Compose e macOS permanece separadamente pendente; existência de configuração não é validação. A publicação e a CI remota estão registradas em `docs/progresso.md` e `docs/testes.md`.
 
 | ID | Código principal | Teste ou verificação observada | Documento | Estado |
 |---|---|---|---|---|
@@ -154,7 +154,7 @@ Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` =
 | NFR08 | `Dockerfile`, `compose.yaml`, `execucao.md` | Não executado: Docker ausente neste host |
 | NFR09 | Comandos PowerShell em `execucao.md` e PostgreSQL local executados; guia macOS no mesmo arquivo | Windows parcial; macOS não executado |
 | NFR10 | `settings.py`, `tests/integration/conftest.py`; `test_rejects_unsafe_test_database`; `execucao.md` | Testado |
-| NFR11 | `.github/workflows/ci.yml` | Não executado no GitHub; publicação pendente |
+| NFR11 | `.github/workflows/ci.yml`; execução `36049791996`, commit `d63a529` | CI concluída com sucesso no GitHub; lint, migração, testes, gate e artifacts aprovados |
 | DOC01 | `README.md`, `execucao.md` | Escrito; clone limpo com Docker não validado |
 | DOC02 | `arquitetura.md`, `adr/` | Revisado localmente |
 | DOC03 | `modelagem.md`, migração, `alembic check` | Revisado/testado |
@@ -162,4 +162,4 @@ Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` =
 | DOC05 | `execucao.md`, `compose.yaml` | Parcial: Docker/macOS não executados |
 | DOC06 | `testes.md` e relatórios de cobertura | Testado localmente |
 | DEL01 | `roteiro-demonstracao.md`; fluxos cobertos em testes HTTP e CLI | Roteiro não executado integralmente à mão |
-| DEL02 | Branch local `feat/task-management-api`; estado e commits em `testes.md` | Local; sem push/PR |
+| DEL02 | Branch `feat/task-management-api`; hashes de `main` e feature conferidos por `git ls-remote`; `progresso.md` | Push autorizado concluído; sem PR/merge |
