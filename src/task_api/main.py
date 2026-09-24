@@ -8,15 +8,18 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
 from task_api.application.service import TaskService
 from task_api.domain.model import AppError
-from task_api.infrastructure.persistence.uow import SqlUnitOfWork, make_session_factory
+from task_api.infrastructure.persistence.uow import (
+    SqlUnitOfWork,
+    database_ready,
+    make_session_factory,
+)
 from task_api.infrastructure.security import ArgonPasswords, JwtTokens
 from task_api.infrastructure.settings import Settings
 from task_api.presentation.routes import router
+from task_api.presentation.schemas import ErrorEnvelope
 
 logger = logging.getLogger("task_api")
 if not logger.handlers:
@@ -136,13 +139,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health():
         return {"status": "ok"}
 
-    @app.get("/ready", tags=["operations"])
+    @app.get(
+        "/ready",
+        tags=["operations"],
+        responses={503: {"model": ErrorEnvelope, "description": "Banco indisponível"}},
+    )
     def ready():
-        try:
-            with app.state.engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-        except SQLAlchemyError:
-            return JSONResponse({"status": "unavailable"}, status_code=503)
+        if not database_ready(app.state.engine):
+            raise AppError(503, "UNAVAILABLE", "Serviço indisponível.")
         return {"status": "ok"}
 
     app.include_router(router)

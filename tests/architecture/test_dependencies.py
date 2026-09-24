@@ -35,11 +35,14 @@ def test_inner_layers_do_not_import_framework_or_adapters():
 
 
 def test_routes_do_not_access_orm_or_sql():
-    path = Path(__file__).resolve().parents[2] / "src/task_api/presentation/routes.py"
-    tree = ast.parse(path.read_text(encoding="utf-8"))
-    imported = [node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
-    assert not any(
-        name.startswith(("sqlalchemy", "psycopg", "task_api.infrastructure"))
-        for name in imported
-        if name
-    )
+    root = Path(__file__).resolve().parents[2] / "src/task_api"
+    for relative in ("presentation/routes.py", "main.py"):
+        tree = ast.parse((root / relative).read_text(encoding="utf-8"))
+        imported = [node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
+        assert not any(name.startswith(("sqlalchemy", "psycopg")) for name in imported if name)
+        assert not any(
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and "SELECT " in node.value
+            for node in ast.walk(tree)
+        )

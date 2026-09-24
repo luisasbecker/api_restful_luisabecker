@@ -53,4 +53,7 @@ def test_readiness_reports_database_unavailable():
         _env_file=None,
     )
     with TestClient(create_app(settings)) as http:
-        assert http.get("/ready").status_code == 503
+        response = http.get("/ready")
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "UNAVAILABLE"
+        assert response.json()["requestId"] == response.headers["X-Request-ID"]

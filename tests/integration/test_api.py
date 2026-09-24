@@ -557,6 +557,7 @@ def test_profile_admin_and_reassignment_access(api):
     )
     assert response.status_code == 200
     assert api.get(f"/tasks/{task_id}", headers=headers(second_token)).status_code == 404
+    assert api.get(f"/tasks/{task_id}/comments", headers=headers(second_token)).status_code == 404
     assert api.get(f"/tasks/{task_id}", headers=headers(third_token)).status_code == 200
     assert api.get(f"/tasks/{task_id}", headers=headers(admin_token)).status_code == 200
     assert admin.role == Role.ADMIN

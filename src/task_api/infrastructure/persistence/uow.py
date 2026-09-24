@@ -2,7 +2,8 @@ from datetime import UTC, date, datetime, time
 from uuid import UUID
 
 from sqlalchemy import create_engine, func, or_, select, text, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from task_api.application.service import conflict
@@ -303,3 +304,12 @@ class SqlUnitOfWork:
 def make_session_factory(database_url: str) -> sessionmaker[Session]:
     engine = create_engine(database_url, pool_pre_ping=True, hide_parameters=True)
     return sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def database_ready(engine: Engine) -> bool:
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return False
+    return True
