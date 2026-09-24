@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "task-api"
+version = "0.1.0"
+description = "API de gestão de tarefas colaborativas"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  "pydantic-settings>=2.5,<3",
+  "python-dotenv>=1,<2",
+  "email-validator>=2,<3",
+  "sqlalchemy>=2.0,<3",
+  "psycopg[binary]>=3.2,<4",
+  "alembic>=1.13,<2",
+  "PyJWT>=2.9,<3",
+  "pwdlib[argon2]>=0.2,<1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-cov>=5,<8", "httpx>=0.27,<1", "ruff>=0.8,<1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/task_api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
