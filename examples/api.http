@@ -1,0 +1,41 @@
+### Configure BASE_URL, EMAIL, PASSWORD, ACCESS_TOKEN e UUIDs em variáveis privadas do cliente HTTP.
+@base = http://127.0.0.1:8000
+
+### Login JSON; substitua as variáveis no cliente HTTP, sem gravar segredos neste arquivo.
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{"email":"{{EMAIL}}","password":"{{PASSWORD}}"}
+
+### Descobrir usuários ativos
+GET {{base}}/users?page=1&pageSize=20
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Criar tarefa e atribuir a um usuário ativo
+POST {{base}}/tasks
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{"title":"Preparar apresentação","description":null,"assignedTo":"{{ASSIGNEE_ID}}","priority":"medium","dueAt":"2026-10-01T15:00:00Z"}
+
+### PUT completo; responsável user só pode alterar status
+PUT {{base}}/tasks/{{TASK_ID}}
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{"title":"Preparar apresentação","description":null,"status":"done","priority":"medium","assignedTo":"{{ASSIGNEE_ID}}","dueAt":"2026-10-01T15:00:00Z"}
+
+### Filtros combinados com visibilidade
+GET {{base}}/tasks?assignedTo={{ASSIGNEE_ID}}&status=done&priority=medium&dueBefore=2026-10-02&page=1&pageSize=20
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Comentar na tarefa visível
+POST {{base}}/tasks/{{TASK_ID}}/comments
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{"content":"Revisão concluída."}
+
+### Encerrar somente a sessão atual
+POST {{base}}/auth/logout
+Authorization: Bearer {{ACCESS_TOKEN}}

@@ -87,3 +87,79 @@ O Codex deverá conservar os identificadores e preencher evidências depois da i
 ## Registro de execução a preencher pelo implementador
 
 Criar uma seção por execução relevante, contendo data, ambiente, comando, código de saída, identificadores desta matriz cobertos, nomes reais dos testes e limitações. As primeiras entradas só podem ser feitas depois dos respectivos comandos. Não preencher percentuais ou quantidade de testes com metas.
+
+## Rastreabilidade da implementação local
+
+Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. As métricas e comandos datados estão em `docs/testes.md`. A execução de Docker, CI remoto e macOS permanece separadamente pendente; existência de configuração não é validação.
+
+| ID | Código principal | Teste ou verificação observada | Documento | Estado |
+|---|---|---|---|---|
+| RF01 | `application/service.py`, `presentation/routes.py` | `I::test_registration_profile_and_persistent_logout`, `U/test_http_contract.py::test_public_registration_rejects_role_without_echoing_secret` | `api.md` | Testado |
+| RF02 | `service.py`, `routes.py` | `I::test_registration_profile_and_persistent_logout`, `I::test_profile_admin_and_reassignment_access` | `api.md` | Testado |
+| RF03 | `service.py`, `schemas.py` | `I::test_profile_admin_and_reassignment_access` | `api.md` | Testado |
+| RF04 | `service.py`, `uow.py` | `I::test_password_role_and_soft_delete_preserve_history` | `api.md`, `modelagem.md` | Testado |
+| RF05 | `service.py`, `routes.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
+| RF06 | `domain/policy.py`, `service.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_comment_author_only_and_deleted_parent_is_hidden` | `api.md` | Testado |
+| RF07 | `uow.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
+| RF08 | `domain/policy.py`, `service.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `U/test_policy.py::test_repeating_done_preserves_timestamps` | `api.md` | Testado |
+| RF09 | `service.py`, `uow.py` | `I::test_comment_author_only_and_deleted_parent_is_hidden` | `api.md` | Testado |
+| RF10 | `security.py`, `service.py` | `I::test_registration_profile_and_persistent_logout`, `I::test_jwt_requires_session_and_role_is_current` | `api.md`, `adr/0003-jwt-sessoes.md` | Testado |
+| RF11 | `service.py`, `uow.py` | `I::test_registration_profile_and_persistent_logout` | `api.md`, `adr/0003-jwt-sessoes.md` | Testado |
+| RC05 | `domain/model.py`, `domain/policy.py` | `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected`, `I::test_jwt_requires_session_and_role_is_current` | `api.md` | Testado |
+| RC06A | `service.py`, `routes.py` | `I::test_comment_parent_authorization_and_guest` | `api.md` | Testado |
+| RC06B | `uow.py`, `routes.py` | `I::test_comment_parent_authorization_and_guest`, `I::test_comment_author_only_and_deleted_parent_is_hidden` | `api.md` | Testado |
+| RC06C | `service.py`, `uow.py` | `I::test_comment_author_only_and_deleted_parent_is_hidden` | `api.md` | Testado |
+| RC08 | `uow.py` | `I::test_filters_due_before_are_exclusive_and_scoped` | `api.md` | Testado |
+| AUX01 | `uow.py`, `routes.py` | `I::test_validation_rejects_naive_time_unknown_query_and_server_fields` | `api.md` | Testado |
+| AUX02 | `service.py`, `uow.py` | `I::test_concurrent_admin_demotions_keep_one_active`, `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `api.md` | Testado |
+| AUX03 | `service.py`, `security.py` | `I::test_password_role_and_soft_delete_preserve_history` | `api.md` | Testado |
+| AUX04 | `main.py` | `U/test_http_contract.py::test_health_and_openapi_do_not_require_database`, `test_readiness_reports_database_unavailable`; smoke HTTP localhost 200 | `execucao.md` | Testado no Windows |
+| SEC01 | `security.py` | `U/test_security.py::test_token_requires_all_claims_and_fixed_algorithm`, `test_token_rejects_invalid_claims_and_algorithm` | `adr/0003-jwt-sessoes.md` | Testado |
+| SEC02 | `service.py`, `uow.py` | `I::test_jwt_requires_session_and_role_is_current`, `I::test_password_role_and_soft_delete_preserve_history` | `adr/0003-jwt-sessoes.md` | Testado |
+| SEC03 | `uow.py` | `I::test_registration_profile_and_persistent_logout` recria a aplicação | `adr/0003-jwt-sessoes.md` | Testado |
+| SEC04 | `domain/policy.py`, `service.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_comment_parent_authorization_and_guest` | `api.md` | Testado |
+| SEC05 | `service.py` | `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `api.md` | Testado |
+| SEC06 | `domain/policy.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
+| SEC07 | `domain/policy.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
+| SEC08 | `uow.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_filters_due_before_are_exclusive_and_scoped` | `api.md` | Testado |
+| SEC09 | `main.py`, `settings.py` | `U/test_http_contract.py::test_public_registration_rejects_role_without_echoing_secret`, `U/test_settings.py::test_invalid_configuration_error_does_not_echo_secret` | `api.md` | Testado |
+| SEC10 | `schemas.py` | `I::test_validation_rejects_naive_time_unknown_query_and_server_fields`, `U/test_http_contract.py::test_public_registration_rejects_role_without_echoing_secret` | `api.md` | Testado |
+| SEC11 | `presentation/cli.py`, `service.py` | CLI `bootstrap-admin` e `seed-demo` executados localmente | `execucao.md` | Testado localmente |
+| NEG01 | `uow.py`, migração | `I::test_password_role_and_soft_delete_preserve_history` | `modelagem.md` | Testado |
+| NEG02 | `uow.py` | `I::test_duplicate_registration_race_returns_one_conflict` | `arquitetura.md` | Testado |
+| NEG03 | `service.py` | `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `arquitetura.md` | Testado |
+| NEG04 | `uow.py` | `I::test_concurrent_admin_demotions_keep_one_active` | `arquitetura.md` | Testado PostgreSQL |
+| NEG05 | `uow.py` | `I::test_concurrent_assignment_and_deactivation_leave_no_open_assignment` | `arquitetura.md` | Testado PostgreSQL |
+| NEG06 | `uow.py` | `I::test_failed_user_deletion_rolls_back_every_change` | `arquitetura.md` | Testado |
+| NEG07 | `domain/policy.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_password_role_and_soft_delete_preserve_history` | `api.md` | Testado |
+| NEG08 | `domain/policy.py` | `U/test_policy.py::test_repeating_done_preserves_timestamps`, `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
+| NEG09 | `service.py` | `I::test_password_role_and_soft_delete_preserve_history` | `api.md` | Testado |
+| NEG10 | `uow.py`, `schemas.py` | `I::test_filters_due_before_are_exclusive_and_scoped`, `U/test_schema_dates.py::test_due_at_is_normalized_to_utc` | `api.md` | Testado |
+| NEG11 | `schemas.py`, `routes.py` | `I::test_validation_rejects_naive_time_unknown_query_and_server_fields` | `api.md` | Testado |
+| NEG12 | `uow.py` | `I::test_filters_due_before_are_exclusive_and_scoped` | `api.md` | Testado |
+| NEG13 | `domain/policy.py` | `I::test_profile_admin_and_reassignment_access` | `api.md` | Testado |
+| NEG14 | `service.py` | `I::test_comment_parent_authorization_and_guest`, `I::test_comment_author_only_and_deleted_parent_is_hidden` | `api.md` | Testado |
+
+### Não funcionais e entrega
+
+| ID | Evidência local | Estado |
+|---|---|---|
+| NFR01 | `A::test_inner_layers_do_not_import_framework_or_adapters`, `test_routes_do_not_access_orm_or_sql`; `arquitetura.md` | Testado |
+| NFR02 | `alembic/versions/0001_initial.py`; `alembic upgrade head` e `alembic check` em PostgreSQL 17; `modelagem.md` | Testado localmente |
+| NFR03 | Suíte completa contra banco `_test`; `testes.md` | Testado localmente |
+| NFR04 | Relatórios em `artifacts/`; números em `testes.md` | Testado localmente |
+| NFR05 | `main.py`; `test_public_registration_rejects_role_without_echoing_secret`; `api.md` | Testado parcialmente: logs estruturados revisados, sem teste de todos os eventos |
+| NFR06 | `routes.py`, `schemas.py`; `test_health_and_openapi_do_not_require_database`; `api.md` | Testado localmente |
+| NFR07 | `pyproject.toml`, `uv.lock`; `uv sync --locked`; `execucao.md` | Testado Windows |
+| NFR08 | `Dockerfile`, `compose.yaml`, `execucao.md` | Não executado: Docker ausente neste host |
+| NFR09 | Comandos PowerShell em `execucao.md` e PostgreSQL local executados; guia macOS no mesmo arquivo | Windows parcial; macOS não executado |
+| NFR10 | `settings.py`, `tests/integration/conftest.py`; `test_rejects_unsafe_test_database`; `execucao.md` | Testado |
+| NFR11 | `.github/workflows/ci.yml` | Não executado no GitHub; publicação pendente |
+| DOC01 | `README.md`, `execucao.md` | Escrito; clone limpo com Docker não validado |
+| DOC02 | `arquitetura.md`, `adr/` | Revisado localmente |
+| DOC03 | `modelagem.md`, migração, `alembic check` | Revisado/testado |
+| DOC04 | `arquitetura.md`, `api.md`, `examples/api.http` | Escrito; exemplos não executados por cliente `.http` |
+| DOC05 | `execucao.md`, `compose.yaml` | Parcial: Docker/macOS não executados |
+| DOC06 | `testes.md` e relatórios de cobertura | Testado localmente |
+| DEL01 | `roteiro-demonstracao.md`; fluxos cobertos em testes HTTP e CLI | Roteiro não executado integralmente à mão |
+| DEL02 | Branch local `feat/task-management-api`; estado e commits em `testes.md` | Local; sem push/PR |
