@@ -2,7 +2,7 @@
 
 ## Resultado dos ajustes de 23/11/2026
 
-Esta medição corresponde ao código do pacote de ajustes sobre a `main` em **`f598a538d959b12df628f90d104e12c923db6d87`**, após o merge do PR #1. Os ajustes foram preparados localmente para a autora revisar e fazer o commit; a medição não corresponde a um novo commit ou a uma nova execução remota de CI.
+Esta medição corresponde ao código do pacote de ajustes sobre a `main` em **`f598a538d959b12df628f90d104e12c923db6d87`**, após o merge do PR #1. Ela foi realizada localmente antes da publicação dos ajustes, posteriormente registrados nos commits `d6ff3bb9e44ea2725aef8c9bd26e29ca0c3ccb29` e `272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`. Os resultados remotos estão identificados separadamente na seção de validação pelo GitHub Actions.
 
 | Medida | Resultado |
 |---|---:|
@@ -84,7 +84,24 @@ O cenário de `scripts/ci_docker.py::smoke_api` foi executado contra Uvicorn e P
 
 Essa execução comprova o fluxo nativo e o cenário HTTP reutilizado. **Não comprova build de imagem, montagem de volumes ou inicialização via Docker Compose.**
 
-## Evidências anteriores e CI
+## Validação dos ajustes no GitHub Actions
+
+A [execução 45300281204](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45300281204) terminou com sucesso após a publicação dos ajustes na `main` em **23/11/2026**. O código testado corresponde ao commit **`272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`**. Os dois jobs foram aprovados:
+
+| Job | Ambiente Python | Testes | Linhas | Ramificações |
+|---|---|---:|---:|---:|
+| `test` | 3.13.13, runner Linux com PostgreSQL | 132 por execução da suíte | 987/1012 = **97,53%** | 150/176 = **85,23%**, em execução separada |
+| `docker` | 3.13.18, imagem da API com PostgreSQL via Compose | 132 | 987/1012 = **97,53%** | Não medidas nesse job |
+
+O job `test` aprovou Ruff, formatação, migração Alembic e as duas execuções de pytest destinadas às métricas de linhas e de ramificações. O artifact `coverage` contém os relatórios dessas medições; a CLI apresentou 69/70 linhas cobertas (**98,57%**).
+
+O job `docker` executou `scripts/ci_docker.py`: construiu a imagem, iniciou banco/migração/API por Compose, verificou bootstrap/seed idempotentes e exercitou permissões, comentários, filtros e logout por HTTP. Após reiniciar a API, confirmou a persistência dos dados e a rejeição da sessão revogada. Também executou a suíte na imagem e exportou o artifact `coverage-docker`.
+
+Os JSONs de cobertura dos dois artifacts foram conferidos, assim como os SHA-256 dos ZIPs em relação aos metadados do GitHub. Houve zero falhas nos testes; os logs registraram a advertência de depreciação do TestClient já observada localmente. A aprovação Docker comprova a execução em contêiner no ambiente Linux do CI, sem afirmar execução em Windows ou macOS.
+
+Esta atualização da documentação foi feita após o código testado. As evidências remotas acima pertencem ao SHA indicado, não a um commit posterior que apenas atualize o registro documental.
+
+## Comparação com as evidências anteriores
 
 As métricas anteriores são preservadas como histórico, sem atribuí-las aos novos ajustes:
 
@@ -96,12 +113,12 @@ As métricas anteriores são preservadas como histórico, sem atribuí-las aos n
 
 A [execução 45279118209](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45279118209) da `main` terminou com sucesso. Os logs e o artifact `coverage` dessa execução foram conferidos: instalação, Ruff, migração, testes e gate aprovados. Esse workflow anterior executava somente o job nativo com serviço PostgreSQL; não construía a imagem da API.
 
-O workflow atualizado acrescenta o job `docker`, com build, migração, bootstrap/seed, HTTP, reinício, suíte na imagem e exportação dos relatórios. **O novo job só poderá ser confirmado após o commit/push da autora e uma execução bem-sucedida no GitHub.**
+A execução `45300281204`, descrita acima, confirmou o workflow atualizado e o job `docker` anteriormente pendente. Os resultados dessa execução não devem ser atribuídos ao código anterior em `f598a538`.
 
 ## Relatórios e limites de entrega
 
 A execução gera XML, JSON, HTML e JUnit em `artifacts/`, ignorado pelo Git. O pacote de ajustes inclui uma cópia das evidências em `evidencias/`; elas acompanham a entrega para conferência e não precisam ser adicionadas ao commit. O helper Docker exporta para `artifacts/docker/`.
 
-Docker não estava instalado no ambiente de preparação: build/Compose e o job novo permanecem **não executados**. O guia macOS também não foi executado. O registro antigo do Windows corresponde à versão histórica, sem presumir que valide os novos ajustes nessa plataforma. Não houve ensaio prolongado de carga ou deploy público.
+Docker não estava instalado no ambiente de preparação; a validação posterior de build/Compose ocorreu no GitHub Actions, conforme a execução registrada acima. Os ajustes atuais e seus procedimentos não foram executados em Windows/macOS. O registro antigo do Windows corresponde à versão histórica, sem presumir que valide os novos ajustes nessa plataforma. Não houve ensaio prolongado de carga ou deploy público.
 
 O vídeo demonstrativo de até 15 minutos ainda precisa ser produzido e vinculado à entrega. O [roteiro](roteiro-demonstracao.md) orienta sua gravação.

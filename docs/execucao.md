@@ -117,9 +117,9 @@ Não é necessário Make ou WSL. O macOS Apple Silicon não tem plataforma amd64
 
 Em 23/11/2026, os ajustes foram validados nativamente em Linux com Python 3.13.5, PostgreSQL 17.12 real e dependências do lockfile instaladas com uv 0.13.9. Passaram os 132 testes, as verificações de Ruff e o smoke HTTP contra Uvicorn, incluindo reinício real do processo e revogação persistente de sessão. O smoke reutilizou o fluxo de `scripts/ci_docker.py` com adaptadores nativos de CLI e reinício.
 
-O ambiente desta revisão não tem Docker: a construção da imagem, a execução de Compose e o novo job Docker de CI continuam aguardando execução. Os testes unitários dos scripts verificam tratamento de falhas e exportação, mas não comprovam a execução em contêiner. macOS não foi executado. O registro anterior do Windows é histórico, não uma validação desses ajustes. Consulte [testes](testes.md) para métricas e comandos, e [progresso](progresso.md) para o estado do commit/CI.
+Docker não estava disponível no ambiente local desta revisão. Após a publicação dos ajustes, a [CI 45300281204](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45300281204), no commit `272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`, aprovou os jobs `test` e `docker`, incluindo construção da imagem e execução por Compose em Linux. Os ajustes atuais não foram executados em Windows/macOS; o registro anterior do Windows é histórico. Consulte [testes](testes.md) para métricas e comandos, e [progresso](progresso.md) para o estado da publicação e as pendências de entrega.
 
-O job `docker` executará `scripts/ci_docker.py` no GitHub Actions, com configuração temporária própria, build, migrações, bootstrap, seed, smoke HTTP, reinício e suíte completa. Esse script recusa execução fora do GitHub Actions; para testes locais em Docker, use `scripts/run_compose_tests.py`.
+O job `docker` executou `scripts/ci_docker.py` no GitHub Actions, com configuração temporária própria, build, migrações, bootstrap, seed, smoke HTTP, reinício e suíte completa. Foram aprovados 132 testes na imagem e a verificação de persistência dos dados e da revogação de sessão após reiniciar a API. Esse script recusa execução fora do GitHub Actions; para testes locais em Docker, use `scripts/run_compose_tests.py`.
 
 ## Diagnóstico e limites
 

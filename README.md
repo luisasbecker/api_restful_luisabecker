@@ -4,7 +4,7 @@ Backend acadêmico em Python 3.13/FastAPI e PostgreSQL 17. Implementa as 11 oper
 
 ## Início rápido com Docker Compose
 
-Pré-requisitos: Git e Docker Engine/Desktop com Compose v2. O procedimento Docker está configurado e será exercitado pelo novo job de CI; a validação local desta revisão foi nativa em Linux, pois o ambiente não dispõe de Docker.
+Pré-requisitos: Git e Docker Engine/Desktop com Compose v2. O build e a execução via Compose foram validados em Linux pelo job `docker` do GitHub Actions; veja as [evidências de testes](docs/testes.md). A validação local desta revisão foi nativa em Linux.
 
 1. Copie `.env.example` para `.env` e substitua todas as senhas e `JWT_SECRET` por valores aleatórios. Nas senhas `POSTGRES_PASSWORD` e `TEST_POSTGRES_PASSWORD`, use somente letras, números, `_` e `-`, pois o Compose as insere diretamente na URL de conexão. Não versione `.env`. O segredo JWT precisa ter pelo menos 32 bytes e não pode manter o prefixo `replace-`; `JWT_MINUTES` deve ser maior ou igual a 1.
 2. Execute `docker compose up --build -d api`. Isso inicia o PostgreSQL persistente, aplica a migração com o serviço `migrate` e inicia a API quando o banco estiver pronto.
@@ -19,7 +19,7 @@ Com `.env` configurado, execute `python scripts/run_compose_tests.py` (`python3`
 
 A fixture exige `APP_ENV=test`, banco com nome terminado em `_test` e nome diferente do banco da aplicação, mesmo que as URLs usem hosts ou credenciais diferentes. URLs ambíguas e opções que substituem o destino são rejeitadas. Ausência do banco causa falha. O gate aplica 60% de **linhas** sobre todo `src/task_api`; a medição complementar de branches é separada.
 
-Na revisão local de **23/11/2026**, a suíte passou com **132 testes**, **97,53% de linhas** e **85,23% de ramificações**, usando PostgreSQL 17.12 real em Linux. Também foi verificada a revogação de sessão depois de reiniciar o processo Uvicorn. Os comandos, resultados, evidências anteriores da `main` e limites estão em [testes](docs/testes.md) e [progresso](docs/progresso.md). A imagem/Compose e o novo job Docker ainda precisam executar; macOS não foi validado. O vídeo de até 15 minutos continua pendente, com [roteiro disponível](docs/roteiro-demonstracao.md).
+Na revisão local de **23/11/2026**, a suíte passou com **132 testes**, **97,53% de linhas** e **85,23% de ramificações**, usando PostgreSQL 17.12 real em Linux. Também foi verificada a revogação de sessão depois de reiniciar o processo Uvicorn. Após a publicação dos ajustes, a [CI 45300281204](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45300281204), no commit `272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`, aprovou os jobs `test` e `docker`: **132 testes por execução da suíte e 97,53% de linhas em ambos os jobs**. O job `test` também mediu **85,23% de ramificações**; o job `docker` verificou build, Compose, CLI, fluxo HTTP e persistência após reinício. Os comandos, relatórios e limites estão em [testes](docs/testes.md) e [progresso](docs/progresso.md). Os ajustes atuais não foram executados em Windows/macOS. O vídeo de até 15 minutos continua pendente, com [roteiro disponível](docs/roteiro-demonstracao.md).
 
 No desenvolvimento nativo: `uv sync --locked`, `uv run alembic upgrade head`, `uv run uvicorn task_api.main:create_app --factory --host 127.0.0.1 --port 8000`. Os comandos completos para PowerShell e macOS constam em [execução](docs/execucao.md). O fluxo detalhado da API está em [contratos](docs/api.md), e o roteiro para apresentação em [demonstração](docs/roteiro-demonstracao.md).
 

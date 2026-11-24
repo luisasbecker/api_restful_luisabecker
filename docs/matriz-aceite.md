@@ -1,7 +1,7 @@
 # Matriz de requisitos e critérios de aceite
 
 Referência normativa: `docs/especificacao.md`, versão 1.1, de 23/11/2026.
-As tabelas iniciais definem os critérios; a seção de rastreabilidade registra a implementação e as verificações. Os ajustes desta revisão foram preparados sobre a `main` no commit `f598a538d959b12df628f90d104e12c923db6d87`, resultante do merge do PR #1. Os resultados locais dos ajustes e os resultados remotos anteriores são identificados separadamente em `docs/testes.md` e `docs/progresso.md`.
+As tabelas iniciais definem os critérios; a seção de rastreabilidade registra a implementação e as verificações. Os ajustes desta revisão foram preparados sobre a `main` no commit `f598a538d959b12df628f90d104e12c923db6d87`, resultante do merge do PR #1, e publicados nos commits `d6ff3bb9e44ea2725aef8c9bd26e29ca0c3ccb29` e `272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`. A CI dos ajustes foi aprovada no segundo commit. Os resultados locais, remotos atuais e históricos são identificados separadamente em `docs/testes.md` e `docs/progresso.md`.
 
 Conservar os identificadores e atualizar evidências após cada implementação: arquivo/caso de uso, teste com nome real, comando/resultado e seção de documentação. Marcar um requisito como concluído exige comportamento e evidência, não apenas existência de um arquivo. Não substituir requisitos por mocks na integração.
 
@@ -90,7 +90,7 @@ Criar uma seção por execução relevante, contendo data, ambiente, comando, c�
 
 ## Rastreabilidade da implementação local
 
-Abreviações: `I` = `tests/integration/test_api.py`; `C` = `tests/integration/test_cli.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. Em 23/11/2026, passaram 132 testes locais (112 unitários, 18 de integração e 2 arquiteturais), com PostgreSQL 17.12 real em Linux. As métricas e os comandos datados estão em `docs/testes.md`. Docker Compose e macOS permanecem pendentes; existência de configuração não é validação. A publicação e a CI remota estão registradas em `docs/progresso.md` e `docs/testes.md`.
+Abreviações: `I` = `tests/integration/test_api.py`; `C` = `tests/integration/test_cli.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. Em 23/11/2026, passaram 132 testes locais (112 unitários, 18 de integração e 2 arquiteturais), com PostgreSQL 17.12 real em Linux. A CI `45300281204` aprovou posteriormente os jobs `test` e `docker`, incluindo a execução por Compose. Os ajustes atuais não foram executados em Windows/macOS. As métricas, os comandos datados, a publicação e a CI remota estão registrados em `docs/progresso.md` e `docs/testes.md`.
 
 | ID | Código principal | Teste ou verificação observada | Documento | Estado |
 |---|---|---|---|---|
@@ -116,7 +116,7 @@ Abreviações: `I` = `tests/integration/test_api.py`; `C` = `tests/integration/t
 | AUX04 | `main.py` | `U/test_http_contract.py::test_health_and_openapi_do_not_require_database`, `test_readiness_reports_database_unavailable`; smoke HTTP contra Uvicorn | `execucao.md` | Testado nativamente em Linux |
 | SEC01 | `security.py` | `U/test_security.py::test_token_requires_all_claims_and_fixed_algorithm`, `test_token_rejects_invalid_claims_and_algorithm` | `adr/0003-jwt-sessoes.md` | Testado |
 | SEC02 | `service.py`, `uow.py` | `I::test_jwt_requires_session_and_role_is_current`, `I::test_password_role_and_soft_delete_preserve_history` | `adr/0003-jwt-sessoes.md` | Testado |
-| SEC03 | `uow.py` | `I::test_registration_profile_and_persistent_logout` recria a aplicação; smoke nativo reinicia o processo Uvicorn e confirma a revogação | `adr/0003-jwt-sessoes.md`, `testes.md` | Testado; contêiner ainda não executado |
+| SEC03 | `uow.py` | `I::test_registration_profile_and_persistent_logout` recria a aplicação; smoke nativo e job `docker` da CI `45300281204` reiniciam a API e confirmam a revogação | `adr/0003-jwt-sessoes.md`, `testes.md` | Testado nativamente e após reinício no Docker |
 | SEC04 | `domain/policy.py`, `service.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_comment_parent_authorization_and_guest` | `api.md` | Testado |
 | SEC05 | `service.py` | `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `api.md` | Testado |
 | SEC06 | `domain/policy.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
@@ -142,27 +142,27 @@ Abreviações: `I` = `tests/integration/test_api.py`; `C` = `tests/integration/t
 
 ### Não funcionais e entrega
 
-| ID | Evidência local | Estado |
+| ID | Evidência | Estado |
 |---|---|---|
 | NFR01 | `A::test_inner_layers_do_not_import_framework_or_adapters`, `test_routes_do_not_access_orm_or_sql`; `arquitetura.md` | Testado |
 | NFR02 | `alembic/versions/0001_initial.py`; `alembic upgrade head` e `alembic check` em PostgreSQL 17; `modelagem.md` | Testado localmente |
 | NFR03 | Suíte completa contra banco `_test`; `testes.md` | Testado localmente |
-| NFR04 | Relatórios da revisão local; `testes.md`: 987/1012 linhas e 150/176 ramificações | 97,53% de linhas; 85,23% de ramificações |
+| NFR04 | Relatórios locais e da CI `45300281204`; `testes.md`: 987/1012 linhas em ambos os jobs e 150/176 ramificações no job `test` | 97,53% de linhas; 85,23% de ramificações na medição separada; gate de 60% aprovado |
 | NFR05 | `main.py`, `alembic/env.py`; `U/test_http_contract.py::test_router_errors_use_envelope_and_request_id`, `test_framework_http_error_keeps_auth_header_without_echoing_detail`, `test_unexpected_error_has_correlated_safe_logs_and_does_not_escape` | Testados envelope 404/405/500, cabeçalhos, correlação, sigilo e preservação dos loggers após migrações |
 | NFR06 | `routes.py`, `schemas.py`; `test_health_and_openapi_do_not_require_database`; `api.md` | Testado localmente |
 | NFR07 | `pyproject.toml`, `uv.lock`; dependências bloqueadas instaladas em Python 3.13.5 com uv 0.13.9; `testes.md` | Testado nativamente em Linux; lockfile preservado |
-| NFR08 | `Dockerfile`, `compose.yaml`, `scripts/ci_docker.py`, `scripts/run_compose_tests.py`; `U/test_delivery_scripts.py` | Scripts testados; smoke HTTP validado nativamente. Build/Compose pendentes: Docker ausente |
+| NFR08 | `Dockerfile`, `compose.yaml`, `scripts/ci_docker.py`, `scripts/run_compose_tests.py`; `U/test_delivery_scripts.py`; job `docker` da CI `45300281204` | Build/Compose, migrações, CLI, smoke HTTP, reinício e suíte na imagem aprovados no CI Linux |
 | NFR09 | Comandos PowerShell e zsh/bash em `execucao.md`; ambiente atual Linux | Windows histórico; ajustes atuais não reexecutados em Windows/macOS |
 | NFR10 | `settings.py`; `U/test_settings.py::test_rejects_same_database_despite_credentials_host_or_url_spelling`, `test_rejects_ambiguous_or_malformed_database_urls`, `test_rejects_query_overrides_and_ambiguous_options`; fixture PostgreSQL | Testado; 70 casos de configuração/salvaguardas |
-| NFR11 | [CI 45279118209](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45279118209) da base `f598a538`; novo job `docker` no workflow | Base remota aprovada com 36 testes/91,70% de linhas. CI dos ajustes e job Docker aguardam publicação/execução |
-| DOC01 | `README.md`, `execucao.md` | Escrito; clone limpo com Docker não validado |
+| NFR11 | [CI 45300281204](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45300281204), commit `272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`; artifacts `coverage` e `coverage-docker` | Jobs `test` e `docker` aprovados; 132 testes por execução da suíte e 97,53% de linhas em ambos |
+| DOC01 | `README.md`, `execucao.md`; job `docker` da CI `45300281204` | Guia escrito; build/Compose executados no CI Linux |
 | DOC02 | `arquitetura.md`, `adr/` | Revisado localmente |
 | DOC03 | `modelagem.md`, migração, `alembic check` | Revisado/testado |
 | DOC04 | `arquitetura.md`, `api.md`, `examples/api.http`, smoke HTTP | Fluxo executado contra Uvicorn; arquivo `.http` não executado por cliente próprio |
-| DOC05 | `execucao.md`, `compose.yaml`, scripts de execução/exportação | Execução nativa validada; Docker/macOS pendentes |
-| DOC06 | `testes.md` e relatórios de cobertura | Testado localmente |
+| DOC05 | `execucao.md`, `compose.yaml`, scripts de execução/exportação; CI `45300281204` | Execução nativa Linux e Docker no CI validadas; ajustes atuais não executados em Windows/macOS |
+| DOC06 | `testes.md` e relatórios locais e dos artifacts `coverage`/`coverage-docker` | Testado localmente e no CI; métricas identificadas por ambiente e commit |
 | DEL01 | `roteiro-demonstracao.md`; fluxos cobertos em testes HTTP e CLI | Vídeo demo de até 15 minutos ainda pendente; roteiro disponível |
-| DEL02 | Merge do PR #1 na `main`, commit `f598a538d959b12df628f90d104e12c923db6d87`; `progresso.md` | Merge confirmado. Ajustes desta revisão entregues para commit pela autora; sem nova escrita remota |
+| DEL02 | Merge do PR #1 na `main`; ajustes publicados nos commits `d6ff3bb9e44ea2725aef8c9bd26e29ca0c3ccb29` e `272b9d34e6ac5c9ead0214eafa4630f2ff8c43fc`; `progresso.md` | Publicação confirmada; CI aprovada no segundo commit; registro documental atualizado após a execução |
 
 ### Regressões acrescentadas nesta revisão
 
