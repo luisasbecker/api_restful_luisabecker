@@ -8,7 +8,11 @@ COPY src ./src
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY tests ./tests
-RUN uv sync --locked && useradd --create-home app && chown -R app:app /app
+COPY scripts ./scripts
+RUN uv sync --locked \
+    && useradd --uid 10001 --create-home app \
+    && mkdir -p /app/artifacts \
+    && chown -R app:app /app
 USER app
 ENV PATH="/app/.venv/bin:${PATH}"
 EXPOSE 8000
