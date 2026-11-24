@@ -1,12 +1,12 @@
 # Especificação — API de Gestão de Tarefas Colaborativas
 
-Versão: 1.0 — 23/09/2026.
+Versão: 1.1 — 23/11/2026; revisão técnica da versão 1.0 de 23/09/2026.
 Repositório-alvo: `luisasbecker/api_restful_luisabecker`.
 Natureza deste arquivo: especificação para implementação; não comprova código, testes ou deploy realizados.
 
 ## 1. Contexto, origem e resultado esperado
 
-Trabalho individual de Engenharia de Software — Arquitetura e Padrões, com prazo informado de uma semana. O enunciado transcrito na conversa e as respostas da autora constituem a origem dos requisitos. O anexo mencionado não estava disponível para consulta; não foram presumidas exigências adicionais desse anexo.
+Trabalho individual de Engenharia de Software — Arquitetura e Padrões. O enunciado e as respostas da autora constituem a origem dos requisitos. A revisão 1.1 preserva as decisões funcionais consolidadas e explicita correções de configuração, erros, testes e entrega após o merge na `main`. Os resultados executados ficam em `docs/testes.md`; esta especificação define os contratos esperados.
 
 Entregar exclusivamente uma API backend em Python e PostgreSQL, com todos os 11 endpoints obrigatórios, exatamente três complementares, arquitetura justificada, testes com pytest, documentação OpenAPI, logs, tratamento de erros e instalação reproduzível em Windows 11 e macOS. Um único ambiente compartilhado de colaboração; não existem organizações, projetos, equipes ou isolamento por locatário no modelo.
 
@@ -99,6 +99,8 @@ Erros usam envelope consistente, sem dados sensíveis:
 ```
 
 `details` pode ser lista vazia. Não copiar o campo `input` nem valores de `ctx` dos erros Pydantic para respostas/logs: podem conter senhas. Erros inesperados retornam mensagem genérica, nunca traceback ou SQL. O servidor gera `X-Request-ID` por requisição e o associa aos logs; não confiar cegamente em um identificador recebido do cliente.
+
+O mesmo envelope e o cabeçalho `X-Request-ID` se aplicam a rota inexistente (404), método não permitido (405) e falha inesperada (500). Preservar `Allow` no 405 e `WWW-Authenticate: Bearer` no 401. A resposta de erro, o cabeçalho e os logs devem conter o mesmo identificador gerado pelo servidor, sem reproduzir mensagens arbitrárias de exceções do framework.
 
 ## 6. Endpoints e contratos
 
@@ -199,7 +201,7 @@ Proteger a corrida entre atribuir e desativar usuário, de modo que a conclusão
 
 ## 10. Autenticação e segurança
 
-JWT de acesso: duração padrão de 30 minutos, configurável. HS256 fixado pela configuração do servidor, segredo aleatório de pelo menos 32 bytes, sem valor padrão utilizável. Validar assinatura, algoritmo permitido, expiração, emissor, audiência e claims obrigatórias `sub`, `jti`, `iat`, `nbf`, `exp`, `iss`, `aud`. Não aceitar algoritmo declarado pelo token como decisão de confiança. `sub` é UUID do usuário em string; `jti` é UUID único.
+JWT de acesso: duração padrão de 30 minutos, configurável por `JWT_MINUTES`, inteiro maior ou igual a 1. HS256 fixado pela configuração do servidor, segredo aleatório de pelo menos 32 bytes, sem valor padrão utilizável. Validar assinatura, algoritmo permitido, expiração, emissor, audiência e claims obrigatórias `sub`, `jti`, `iat`, `nbf`, `exp`, `iss`, `aud`. Não aceitar algoritmo declarado pelo token como decisão de confiança. `sub` é UUID do usuário em string; `jti` é UUID único.
 
 Cada login cria uma linha em `auth_sessions`. Não armazenar JWT completo nem senha em claro. Cada requisição protegida valida o token e verifica sessão existente, correspondente ao usuário, não revogada, não expirada, e usuário ativo. Obter papel atual no banco; não depender de um papel antigo no token. Sessão inexistente também torna o token inválido.
 
@@ -208,6 +210,8 @@ Logout marca `revoked_at`; nova requisição usando o token falha inclusive apó
 Hash de senha com Argon2id por biblioteca especializada. Preferir configuração recomendada da biblioteca, verificando algoritmo/parâmetros compatíveis com orientação atual da OWASP. Para e-mail inexistente no login, considerar verificação contra hash fictício válido para reduzir diferença de tempo, sem criar conta. Não escrever primitivas criptográficas próprias.
 
 Primeiro administrador via CLI explícita, recebendo nome/e-mail/senha por ambiente ou entrada oculta; nunca pela API pública. Bootstrap não redefine senha nem promove conta existente silenciosamente. Reexecução para o mesmo administrador não altera credenciais. Se já houver um administrador ativo diferente, criação/promoção adicional usa a rota autenticada. Bootstrap e seed não executam automaticamente no startup.
+
+A CLI deve devolver código diferente de zero quando falhar, sanitizar mensagens de configuração/validação/infraestrutura e liberar o engine ao terminar. O seed não deve tratar uma falha inesperada como conta já existente. Cobrir bootstrap e seed tanto com testes unitários quanto com PostgreSQL real.
 
 Segredos somente em ambiente; `.env` ignorado no Git e Docker build. `.env.example` contém placeholders reconhecidos como inválidos. Testes usam segredos exclusivamente de teste. Não publicar tokens ou senhas nos exemplos de requisições. CORS desabilitado por padrão, sem wildcard com credenciais.
 
@@ -234,13 +238,17 @@ Logs estruturados em JSON para stdout: instante, nível, evento, requestId, mét
 
 Desabilitar echo SQL e configurar ocultação de parâmetros do SQLAlchemy. Tratamento centralizado de exceções de domínio, autenticação, validação, restrições conhecidas e erros inesperados. Não converter qualquer Exception em 400/200. Transações falhas devem ser revertidas. Testar que respostas e logs não vazam os segredos usados no teste.
 
+Falhas inesperadas antes do envio da resposta devem gerar o evento `unexpected_error` com tipo e localização segura da exceção, sem mensagem bruta, traceback completo ou variáveis locais. Também devem produzir o evento `http_request` com status 500, duração e o mesmo `requestId`. Usar o padrão da rota em logs e um marcador fixo para rotas não encontradas, sem copiar URL/query fornecidas pelo cliente. A configuração de logging de Alembic deve preservar os loggers existentes quando uma migração ocorrer no processo dos testes.
+
 ## 13. Testes, cobertura e evidências
 
 pytest obrigatório. Testes unitários do domínio/casos de uso/políticas com portas falsas, relógio controlável e sem banco/rede; testes de integração de repositórios, migrações, autenticação e HTTP contra **PostgreSQL real** dedicado; testes arquiteturais das dependências.
 
 O comando padrão da suíte completa falha se o banco de testes estiver indisponível. Não usar SQLite, fallback em memória ou skips automáticos para declarar sucesso de integração. O modo somente unitário pode existir e deve ser nomeado explicitamente; não equivale à validação da API completa.
 
-A configuração exige TEST_DATABASE_URL diferente de DATABASE_URL, APP_ENV=test e banco de nome terminado em `_test` para operações destrutivas de fixture. Usar credenciais isoladas e recusar limpeza quando as salvaguardas não forem satisfeitas. Aplicar migrações em banco novo, isolar cada teste, cobrir rollback e não executar testes dependentes de ordem.
+A configuração exige `APP_ENV=test` e banco de teste com nome terminado em `_test` para migrações e operações destrutivas de fixture. O nome deve ser diferente do nome do banco da aplicação, mesmo quando host, porta ou credenciais diferirem. URLs diferentes por texto não demonstram isolamento. Por precaução, exigir nomes distintos também em servidores diferentes. Usar credenciais isoladas e recusar a operação quando as salvaguardas não forem satisfeitas.
+
+Ambas as URLs usam o esquema exato `postgresql+psycopg://`, host explícito e nome de banco ASCII de 1–63 caracteres: letras, números e `_`, iniciado por letra ou `_`. Não aceitar codificação percentual no nome do banco, pois o parser do SQLAlchemy usado pelo projeto não a decodifica. Credenciais podem ser codificadas conforme a sintaxe de URL. Rejeitar URLs malformadas, fragmentos, controles, parâmetros de conexão que substituam o destino e parâmetros repetidos. Permitir somente `sslmode`, `connect_timeout` inteiro positivo e `application_name` não vazio. Mensagens de configuração não expõem a conexão recebida. Aplicar migrações em banco novo, isolar cada teste, cobrir rollback e não executar testes dependentes de ordem.
 
 **Mínimo obrigatório de cobertura de linhas: 60% de todo `src/task_api`; meta de trabalho: 80%.** Incluir código não importado no denominador. Não excluir arbitrariamente infraestrutura, rotas, segurança, CLI ou main. Migrações, documentação e testes não integram esse denominador, mas possuem verificações próprias.
 
@@ -254,11 +262,17 @@ Nesse comando não ativar branch coverage na configuração global, pois ela alt
 
 GitHub Actions executa lint, formatação em modo de checagem, migrações e suíte completa com PostgreSQL, aplica o limite de linhas e publica XML/HTML/JSON como artifacts. Falhas não podem ser ignoradas com continue-on-error. Dependências resolvidas pelo lockfile.
 
+Um job Docker adicional deve construir a imagem, iniciar banco/migração/API, executar bootstrap e seed, testar o fluxo HTTP com reinício real da API e verificar persistência de dados e revogação de sessão. Depois executa a suíte em contêiner e exporta relatórios. O script desse job usa configuração temporária exclusiva de CI e recusa execução local; sua presença no repositório não equivale a uma execução aprovada. Registrar o run correspondente somente depois que ele ocorrer.
+
 `docs/testes.md` deve conter comando exato, ambiente/versões, data, commit testado quando disponível, total de testes e percentuais **medidos**. Até haver execução, escrever explicitamente “não executado”; jamais inventar métricas. Demonstrar todos os cenários da matriz de aceite.
 
 ## 14. Execução, deploy local e documentação final
 
 Caminho principal: Docker Compose com PostgreSQL persistente, serviço de migrações de execução única e API dependente de banco saudável e migrações concluídas. Não gerar tabelas automaticamente nem aplicar migrações concorrentes por worker. Mapear as portas de desenvolvimento para 127.0.0.1 no host; o processo dentro do container pode escutar em 0.0.0.0. Serviços de teste usam banco/volume isolado, nunca o volume da aplicação. Nomear serviços de maneira clara, por exemplo db, migrate, api, test-db e tests.
+
+Os relatórios Docker usam o volume nomeado `test_artifacts`, com diretório preparado para o usuário não root `app` (UID 10001). O script `scripts/run_compose_tests.py` constrói a imagem, executa a suíte e copia os relatórios para `artifacts/docker/` como o usuário do host. Uma falha da suíte deve continuar sendo falha mesmo quando a exportação funciona; falha isolada da exportação também deve produzir saída diferente de zero. Documentar alternativa somente com comandos Docker, sem exigir Python no host.
+
+Como o Compose interpola as senhas do PostgreSQL diretamente na URL, `POSTGRES_PASSWORD` e `TEST_POSTGRES_PASSWORD` devem usar valores aleatórios compostos por letras, números, `_` e `-`. Para URLs nativas escritas manualmente, codificar caracteres reservados das credenciais. Senhas administrativas e de demonstração podem vir do prompt oculto; encaminhar variáveis do terminal ao contêiner explicitamente com `-e BOOTSTRAP_PASSWORD` ou `-e DEMO_PASSWORD`.
 
 Caminho alternativo: Python/uv nativos e somente banco em Docker. Documentar PowerShell para Windows 11 e zsh/bash para macOS, incluindo diferenças entre host `localhost` e hostname do banco dentro da rede Compose. Não exigir Make, bash ou WSL para comandos essenciais no Windows. Não fixar plataforma amd64 sem necessidade, para permitir macOS Apple Silicon; registrar o que foi efetivamente testado.
 

@@ -1,19 +1,25 @@
 # API de Gestão de Tarefas Colaborativas
 
-Backend acadêmico em Python 3.13/FastAPI e PostgreSQL 17. Implementa as 11 operações obrigatórias de usuários, autenticação e tarefas, com exatamente três complementares: **papéis**, **comentários** e **filtros**. Não há frontend nem serviços externos. O mesmo banco atende todos os usuários; cada tarefa é visível apenas a criador, responsável ou administrador.
+Backend acadêmico em Python 3.13/FastAPI e PostgreSQL 17. Implementa as 11 operações obrigatórias de usuários, autenticação e tarefas, com exatamente três complementares: **5 — papéis e permissões**, **6 — comentários em tarefas** e **8 — filtros avançados**. Não há frontend nem serviços externos. O mesmo banco atende todos os usuários; cada tarefa é visível apenas a criador, responsável ou administrador.
 
 ## Início rápido com Docker Compose
 
-1. Copie `.env.example` para `.env` e substitua todas as senhas e `JWT_SECRET` por valores aleatórios. Não versione `.env`. O segredo JWT precisa ter pelo menos 32 bytes e não pode manter o prefixo `replace-`.
-2. Execute `docker compose up --build -d api`. Isso inicia o PostgreSQL persistente, aplica a migração com o serviço `migrate` e inicia a API quando o banco estiver pronto.
-3. Execute `docker compose run --rm -it api python -m task_api.presentation.cli bootstrap-admin`; a senha será solicitada sem eco caso `BOOTSTRAP_PASSWORD` não esteja no ambiente.
-4. Abra `http://127.0.0.1:8000/docs`. Use `POST /auth/login` com JSON, copie `accessToken` e cole em **Authorize** no esquema HTTP Bearer. O ReDoc fica em `/redoc`.
+Pré-requisitos: Git e Docker Engine/Desktop com Compose v2. O procedimento Docker está configurado e será exercitado pelo novo job de CI; a validação local desta revisão foi nativa em Linux, pois o ambiente não dispõe de Docker.
 
-Para dados de demonstração, execute explicitamente `docker compose run --rm -it api python -m task_api.presentation.cli seed-demo`. Defina `DEMO_PASSWORD` no ambiente do processo ou digite no prompt oculto. O seed não redefine contas preexistentes.
+1. Copie `.env.example` para `.env` e substitua todas as senhas e `JWT_SECRET` por valores aleatórios. Nas senhas `POSTGRES_PASSWORD` e `TEST_POSTGRES_PASSWORD`, use somente letras, números, `_` e `-`, pois o Compose as insere diretamente na URL de conexão. Não versione `.env`. O segredo JWT precisa ter pelo menos 32 bytes e não pode manter o prefixo `replace-`; `JWT_MINUTES` deve ser maior ou igual a 1.
+2. Execute `docker compose up --build -d api`. Isso inicia o PostgreSQL persistente, aplica a migração com o serviço `migrate` e inicia a API quando o banco estiver pronto.
+3. Execute `docker compose run --rm -it api python -m task_api.presentation.cli bootstrap-admin`; a senha será solicitada sem eco. Para transmitir uma variável já definida no terminal, acrescente `-e BOOTSTRAP_PASSWORD` antes de `api`.
+4. Abra [Swagger](http://127.0.0.1:8000/docs). Use `POST /auth/login` com JSON, copie `accessToken` e cole em **Authorize** no esquema HTTP Bearer. O [ReDoc](http://127.0.0.1:8000/redoc) também documenta a API.
+
+Para dados de demonstração, execute explicitamente `docker compose run --rm -it api python -m task_api.presentation.cli seed-demo` e digite a senha no prompt oculto. Para usar uma variável já definida no terminal, acrescente `-e DEMO_PASSWORD` antes de `api`. O seed não redefine contas preexistentes.
 
 ## Testes
 
-Com `.env` configurado, `docker compose --profile test run --rm tests` executa a suíte com um serviço `test-db` e volume próprios. A fixture exige `APP_ENV=test`, URL de teste diferente da aplicação e nome do banco terminado em `_test`. Ausência do banco causa falha. O gate aplica 60% de **linhas** sobre todo `src/task_api`; a medição complementar de branches é separada.
+Com `.env` configurado, execute `python scripts/run_compose_tests.py` (`python3` no macOS ou `uv run python` após instalar as dependências). O comando constrói a imagem, executa a suíte com PostgreSQL dedicado e exporta relatórios para `artifacts/docker/`, preservando o código de falha dos testes. O volume `test_artifacts` permite gravar os relatórios como usuário não root, sem depender das permissões de uma pasta montada do host. O [guia de execução](docs/execucao.md) inclui a alternativa que usa somente comandos Docker.
+
+A fixture exige `APP_ENV=test`, banco com nome terminado em `_test` e nome diferente do banco da aplicação, mesmo que as URLs usem hosts ou credenciais diferentes. URLs ambíguas e opções que substituem o destino são rejeitadas. Ausência do banco causa falha. O gate aplica 60% de **linhas** sobre todo `src/task_api`; a medição complementar de branches é separada.
+
+Na revisão local de **23/11/2026**, a suíte passou com **132 testes**, **97,53% de linhas** e **85,23% de ramificações**, usando PostgreSQL 17.12 real em Linux. Também foi verificada a revogação de sessão depois de reiniciar o processo Uvicorn. Os comandos, resultados, evidências anteriores da `main` e limites estão em [testes](docs/testes.md) e [progresso](docs/progresso.md). A imagem/Compose e o novo job Docker ainda precisam executar; macOS não foi validado. O vídeo de até 15 minutos continua pendente, com [roteiro disponível](docs/roteiro-demonstracao.md).
 
 No desenvolvimento nativo: `uv sync --locked`, `uv run alembic upgrade head`, `uv run uvicorn task_api.main:create_app --factory --host 127.0.0.1 --port 8000`. Os comandos completos para PowerShell e macOS constam em [execução](docs/execucao.md). O fluxo detalhado da API está em [contratos](docs/api.md), e o roteiro para apresentação em [demonstração](docs/roteiro-demonstracao.md).
 

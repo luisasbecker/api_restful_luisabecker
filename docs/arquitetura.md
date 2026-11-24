@@ -15,6 +15,8 @@ flowchart LR
 
 O domínio usa apenas a biblioteca padrão. A aplicação conhece o domínio e suas portas, sem importar FastAPI, Pydantic ou ORM. As rotas validam o contrato HTTP, chamam `TaskService` e projetam respostas; `SqlUnitOfWork` liga repositórios ao `Session`. Os mapeamentos entre `User`/`Task`/`Comment` do domínio, linhas ORM e schemas Pydantic são explícitos.
 
+`AppError` contém código semântico e mensagem controlada, sem status HTTP. A fronteira HTTP em `main.py` traduz códigos como `CONFLICT` para 409; a CLI traduz os mesmos erros em mensagem de terminal e código de saída 1. Isso permite reutilizar os casos de uso pelos dois adaptadores sem transportar detalhes de HTTP para as camadas internas. A CLI descarta o engine em um bloco `finally`, tanto no sucesso quanto na falha.
+
 Repository encapsula consultas, inclusive o predicado de visibilidade aplicado no `WHERE` antes de `COUNT/LIMIT/OFFSET`. A UoW controla o commit; métodos de repositório não confirmam transações. Ao sair de uma UoW sem commit, ocorre rollback e fechamento da sessão. A factory cria uma `Session` por operação. A `create_app` injeta o factory, hash, codec JWT e relógio.
 
 ## Fluxo de autenticação e alteração

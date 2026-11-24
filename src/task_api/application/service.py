@@ -17,19 +17,19 @@ from task_api.domain.policy import apply_task_changes, can_view_task
 
 
 def not_found() -> AppError:
-    return AppError(404, "NOT_FOUND", "Recurso não encontrado.")
+    return AppError("NOT_FOUND", "Recurso não encontrado.")
 
 
 def forbidden() -> AppError:
-    return AppError(403, "FORBIDDEN", "Ação não permitida.")
+    return AppError("FORBIDDEN", "Ação não permitida.")
 
 
 def unauthorized() -> AppError:
-    return AppError(401, "UNAUTHORIZED", "Autenticação inválida.")
+    return AppError("UNAUTHORIZED", "Autenticação inválida.")
 
 
 def conflict() -> AppError:
-    return AppError(409, "CONFLICT", "Operação em conflito com o estado atual.")
+    return AppError("CONFLICT", "Operação em conflito com o estado atual.")
 
 
 def normalize_email(value: str) -> str:

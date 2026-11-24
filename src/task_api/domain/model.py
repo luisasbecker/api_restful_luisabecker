@@ -70,8 +70,9 @@ class AuthSession:
 
 
 class AppError(Exception):
-    def __init__(self, status: int, code: str, message: str):
-        self.status = status
+    """Semantic error; each adapter decides how to present it to its client."""
+
+    def __init__(self, code: str, message: str):
         self.code = code
         self.message = message
         super().__init__(message)

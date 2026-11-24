@@ -2,12 +2,15 @@ import json
 import logging
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 from time import perf_counter
+from traceback import walk_tb
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException
 
 from task_api.application.service import TaskService
 from task_api.domain.model import AppError
@@ -28,12 +31,57 @@ if not logger.handlers:
     logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
+# Transport-specific statuses belong at the HTTP boundary, not in the domain.
+ERROR_STATUSES = {
+    "UNAUTHORIZED": 401,
+    "FORBIDDEN": 403,
+    "NOT_FOUND": 404,
+    "CONFLICT": 409,
+    "VALIDATION_ERROR": 422,
+    "UNAVAILABLE": 503,
+}
+HTTP_ERRORS = {
+    400: ("BAD_REQUEST", "Requisição inválida."),
+    401: ("UNAUTHORIZED", "Autenticação inválida."),
+    403: ("FORBIDDEN", "Ação proibida."),
+    404: ("NOT_FOUND", "Recurso não encontrado."),
+    405: ("METHOD_NOT_ALLOWED", "Método não permitido."),
+    409: ("CONFLICT", "Conflito."),
+    422: ("VALIDATION_ERROR", "Dados inválidos."),
+    503: ("UNAVAILABLE", "Serviço indisponível."),
+}
+
 
 def error_body(request: Request, code: str, message: str, details: list | None = None) -> dict:
     return {
         "error": {"code": code, "message": message, "details": details or []},
         "requestId": request.state.request_id,
     }
+
+
+def unexpected_response(request: Request, exc: Exception) -> JSONResponse:
+    source = None
+    for frame, line in walk_tb(exc.__traceback__):
+        source = {
+            "file": Path(frame.f_code.co_filename).name,
+            "function": frame.f_code.co_name,
+            "line": line,
+        }
+    # No exception message, traceback text, source code or frame locals: all can
+    # contain passwords, SQL parameters, DSNs or bearer tokens.
+    logger.error(
+        json.dumps(
+            {
+                "time": datetime.now(UTC).isoformat(),
+                "level": "ERROR",
+                "event": "unexpected_error",
+                "requestId": request.state.request_id,
+                "exceptionType": type(exc).__name__,
+                "source": source,
+            }
+        )
+    )
+    return JSONResponse(error_body(request, "INTERNAL_ERROR", "Erro interno."), status_code=500)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -48,7 +96,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lambda: datetime.now(UTC),
         settings.jwt_minutes,
     )
-    app = FastAPI(title="API de Gestão de Tarefas Colaborativas", version="0.1.0")
+    app = FastAPI(
+        title="API de Gestão de Tarefas Colaborativas",
+        version="0.1.0",
+        responses={
+            405: {"model": ErrorEnvelope, "description": "Método não permitido"},
+            500: {"model": ErrorEnvelope, "description": "Erro interno"},
+        },
+    )
     app.state.service = service
     app.state.engine = sessions.kw["bind"]
 
@@ -56,7 +111,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def request_log(request: Request, call_next):
         request.state.request_id = str(uuid4())
         start = perf_counter()
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            # Handle before ServerErrorMiddleware can re-raise and print a raw
+            # traceback; keep the same request log and header for 500 responses.
+            response = unexpected_response(request, exc)
         response.headers["X-Request-ID"] = request.state.request_id
         route = request.scope.get("route")
         logger.info(
@@ -78,10 +138,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(AppError)
     async def domain_error(request: Request, exc: AppError):
-        headers = {"WWW-Authenticate": "Bearer"} if exc.status == 401 else {}
+        status = ERROR_STATUSES.get(exc.code)
+        if status is None:
+            return unexpected_response(request, exc)
+        headers = {"WWW-Authenticate": "Bearer"} if status == 401 else {}
         return JSONResponse(
-            error_body(request, exc.code, exc.message), status_code=exc.status, headers=headers
+            error_body(request, exc.code, exc.message), status_code=status, headers=headers
         )
+
+    @app.exception_handler(HTTPException)
+    async def http_error(request: Request, exc: HTTPException):
+        fallback = (
+            ("INTERNAL_ERROR", "Erro interno.")
+            if exc.status_code >= 500
+            else ("HTTP_ERROR", "Falha na requisição.")
+        )
+        code, message = HTTP_ERRORS.get(exc.status_code, fallback)
+        response = JSONResponse(
+            error_body(request, code, message), status_code=exc.status_code, headers=exc.headers
+        )
+        if exc.status_code == 401:
+            response.headers.setdefault("WWW-Authenticate", "Bearer")
+        return response
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):
@@ -121,20 +199,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             error_body(request, "VALIDATION_ERROR", "Dados inválidos.", details), status_code=422
         )
 
-    @app.exception_handler(Exception)
-    async def unexpected_error(request: Request, _exc: Exception):
-        logger.error(
-            json.dumps(
-                {
-                    "time": datetime.now(UTC).isoformat(),
-                    "level": "ERROR",
-                    "event": "unexpected_error",
-                    "requestId": request.state.request_id,
-                }
-            )
-        )
-        return JSONResponse(error_body(request, "INTERNAL_ERROR", "Erro interno."), status_code=500)
-
     @app.get("/health", tags=["operations"])
     def health():
         return {"status": "ok"}
@@ -146,7 +210,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     def ready():
         if not database_ready(app.state.engine):
-            raise AppError(503, "UNAVAILABLE", "Serviço indisponível.")
+            raise AppError("UNAVAILABLE", "Serviço indisponível.")
         return {"status": "ok"}
 
     app.include_router(router)

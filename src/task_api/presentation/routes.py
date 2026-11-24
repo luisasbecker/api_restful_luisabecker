@@ -64,7 +64,7 @@ Actor = Annotated[tuple[User, UUID], Depends(get_actor)]
 
 def strict_query(request: Request, allowed: set[str]) -> None:
     if set(request.query_params) - allowed:
-        raise AppError(422, "VALIDATION_ERROR", "Dados inválidos.")
+        raise AppError("VALIDATION_ERROR", "Dados inválidos.")
 
 
 def page(items: list, total: int, number: int, size: int) -> dict:

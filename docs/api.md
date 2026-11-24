@@ -28,3 +28,11 @@ JSON usa camelCase; IDs são UUID v4 e instantes incluem UTC. Todas as rotas pro
 `GET /tasks` aceita `assignedTo`, `status`, `priority`, `dueBefore`, `page` e `pageSize`; filtros combinam por AND. `dueBefore=2026-10-01` exclui tarefas com `dueAt >= 2026-10-01T00:00:00Z` e sem prazo. `page` começa em 1, `pageSize` vai de 1 a 100. Query desconhecida retorna 422. Tarefas usam `createdAt DESC,id`; comentários usam `createdAt ASC,id`; diretório usa `name,id`.
 
 Erros usam `{error:{code,message,details},requestId}` e `X-Request-ID`. Falta/erro de token: 401 com `WWW-Authenticate: Bearer`; permissão negada em recurso visível: 403; recurso ausente, excluído ou tarefa invisível: 404; conflito de e-mail/último admin/reatribuição histórica: 409; dados inválidos: 422. O corpo do erro não inclui o valor recebido nem detalhes internos do banco. Exemplos sem credenciais reais estão em [`examples/api.http`](../examples/api.http).
+
+## Roteamento, falhas inesperadas e correlação
+
+O mesmo envelope também se aplica a rotas inexistentes (**404 / NOT_FOUND**), métodos não permitidos (**405 / METHOD_NOT_ALLOWED**, preservando `Allow`) e falhas inesperadas (**500 / INTERNAL_ERROR**). O servidor gera um UUID próprio para cada requisição; não reutiliza um `X-Request-ID` recebido do cliente. O valor em `requestId` é igual ao cabeçalho da resposta e ao identificador registrado nos logs, inclusive no erro 500.
+
+Cada requisição gera `http_request`, com método, modelo da rota, status, duração e usuário quando disponível. Uma falha inesperada gera também `unexpected_error`, com o tipo da exceção e a localização no código: nome do arquivo, função e linha. Mensagem original da exceção, valores de entrada, traceback textual, código-fonte, variáveis locais, SQL e credenciais não são incluídos. Uma URL sem rota correspondente aparece como `unmatched` no log, sem copiar o caminho fornecido pelo cliente.
+
+Os erros semânticos da aplicação são convertidos em HTTP na composição da API. A CLI apresenta mensagens controladas e encerra com código diferente de zero em caso de erro, sem imprimir detalhes de validação ou conexão que possam conter segredos.

@@ -1,39 +1,107 @@
 # Estratégia e evidências de testes
 
-## Ambiente da execução
+## Resultado dos ajustes de 23/11/2026
 
-Executado em 24/09/2026 no Windows NT 10.0.26200.0 (Windows 11), com Python 3.13.13, uv 0.11.6 e PostgreSQL 17.11 portátil. Pacotes relevantes do lock efetivamente instalados: FastAPI 0.141.1, Pydantic 2.13.5, SQLAlchemy 2.0.54, psycopg 3.3.6, Alembic 1.20.0, PyJWT 2.15.0, pwdlib 0.3.1, pytest 9.1.1 e Ruff 0.16.8. Código testado e confirmado no commit local `120129a` (o commit foi criado após a medição, sem alterações de código entre a execução e o commit).
+Esta medição corresponde ao código do pacote de ajustes sobre a `main` em **`f598a538d959b12df628f90d104e12c923db6d87`**, após o merge do PR #1. Os ajustes foram preparados localmente para a autora revisar e fazer o commit; a medição não corresponde a um novo commit ou a uma nova execução remota de CI.
 
-Foram criados dois bancos distintos em uma instância local do PostgreSQL, com contas/credenciais aleatórias separadas: `task_api` e `task_api_test`. O servidor escutou apenas em `127.0.0.1:55432`. As credenciais ficaram em `.local/`, ignorado pelo Git. A fixture aplicou `alembic upgrade head` no banco de teste e executou `TRUNCATE` somente depois de confirmar `APP_ENV=test`, URLs diferentes e sufixo `_test`. Não há SQLite, skip ou fallback de integração.
+| Medida | Resultado |
+|---|---:|
+| Testes aprovados na suíte completa | **132** |
+| Unitários | 112 |
+| Integração com PostgreSQL real | 18 |
+| Arquitetura | 2 |
+| Linhas/instruções cobertas em todo `src/task_api` | **987 / 1012 = 97,53%** |
+| Gate de linhas do enunciado | **60% — aprovado** |
+| Ramificações cobertas, em execução separada | **150 / 176 = 85,23%** |
+| Linhas da CLI cobertas automaticamente | **69 / 70 = 98,57%** |
 
-## Comandos e resultados
+O denominador inclui todos os módulos da API, incluindo CLI, infraestrutura, rotas e composição. Não foi introduzida exclusão de arquivos ou redução do gate. Os casos parametrizados contam como testes individuais; a quantidade de testes não substitui a verificação de comportamento.
 
-| Comando | Código de saída | Resultado |
+## Ambiente efetivamente executado
+
+Linux Debian 13, Python **3.13.5**, uv **0.13.9** e PostgreSQL **17.12**. As dependências foram instaladas com o `uv.lock` existente, sem alteração das versões: FastAPI 0.141.1, Starlette 1.7.0, Pydantic 2.13.5, SQLAlchemy 2.0.54, psycopg 3.3.6, Alembic 1.20.0, PyJWT 2.15.0, pwdlib 0.3.1, pytest 9.1.1, coverage 7.16.1 e Ruff 0.16.8.
+
+Foi criado um cluster PostgreSQL temporário com acesso TCP apenas em `127.0.0.1`, autenticação SCRAM e credenciais aleatórias. Aplicação e integração usaram bancos e usuários distintos: `task_api_review` e `task_api_review_test`. As credenciais ficaram fora dos arquivos entregues e do repositório. O banco de testes recebeu as migrações Alembic; a fixture só executou a limpeza depois de validar ambiente, nomes e URLs. Não houve SQLite, fallback em memória ou skip por falta de banco.
+
+## Comandos e resultados atuais
+
+Com o ambiente virtual instalado, foram executados os comandos abaixo. As variáveis da aplicação e do banco de testes foram fornecidas por ambiente; os caminhos absolutos do workspace não fazem parte da configuração do projeto.
+
+| Comando | Saída | Evidência |
 |---|---:|---|
-| `uv python install 3.13` | 0 | Python 3.13.13 instalado |
-| `uv lock` | 0 | 44 pacotes resolvidos em lock real |
-| `uv sync --locked` | 0 | 44 pacotes conferidos; ambiente coerente |
-| `uv run ruff check .` | 0 | Sem problemas |
-| `uv run ruff format --check .` | 0 | 47 arquivos formatados |
-| `uv run alembic upgrade head` | 0 | Migração `0001_initial` aplicada em banco novo e reexecução idempotente |
-| `uv run alembic check` | 0 | Nenhuma operação de upgrade nova detectada |
-| `uv run pytest --cov=src/task_api --cov-report=term-missing --cov-report=xml:artifacts/coverage.xml --cov-report=html:artifacts/htmlcov --cov-report=json:artifacts/coverage-lines.json --cov-fail-under=60` | 0 | **36 testes passaram**; **848/928 linhas = 91,38%**; gate 60% cumprido |
-| `uv run pytest --cov=src/task_api --cov-branch --cov-report=json:artifacts/coverage-branches.json -q` | 0 | **36 testes passaram**; **96/140 branches = 68,57%** (métrica complementar, sem substituir linhas) |
-| Teste de integração isolado sem `APP_ENV`/URLs | 1 esperado | Fixture recusou limpeza; nenhum skip/fallback |
-| `docker compose version` | 1 | `docker` não encontrado no PATH; build/Compose não executados |
+| `uv sync --locked --python /usr/bin/python3.13` | 0 | Dependências do lock instaladas |
+| `.venv/bin/ruff check .` | 0 | Sem problemas |
+| `.venv/bin/ruff format --check .` | 0 | 52 arquivos conformes |
+| `.venv/bin/python -m alembic upgrade head` | 0 | Migração inicial aplicada em banco novo |
+| Reexecução de `alembic upgrade head` | 0 | Migração idempotente |
+| `.venv/bin/python -m alembic check` | 0 | Nenhuma operação nova de upgrade detectada |
+| Suíte com cobertura de linhas, comando abaixo | 0 | 132 aprovados; gate de 60% cumprido |
+| Suíte com cobertura de branches, comando abaixo | 0 | 132 aprovados; medição complementar |
+| Smoke HTTP nativo com Uvicorn e PostgreSQL | 0 | CLI, colaboração e persistência após reinício |
+| `git diff --check` | 0 | Sem erros de whitespace nos ajustes |
 
-O gate global de cobertura não ativa branches. O relatório de branches é produzido em execução separada. O JSON de branches também contém uma métrica agregada linhas+branches; **68,57% acima é a razão entre branches cobertos e branches totais**, calculada a partir de `covered_branches/num_branches`. Os artifacts locais são ignorados pelo Git. A execução emitiu uma advertência de depreciação do `TestClient` FastAPI/Starlette com HTTPX; todos os testes passaram.
+Comando exato da medição de linhas:
 
-Também foram executados `bootstrap-admin` e `seed-demo` contra o banco local com senhas aleatórias efêmeras (código 0). A segunda execução de `seed-demo` preservou as contas existentes. Um processo Uvicorn temporário respondeu 200 em `/health`, `/ready`, `/docs` e `/openapi.json` por HTTP real em `127.0.0.1:58080` (código 0); o processo foi encerrado após o smoke test. O teste `test_registration_profile_and_persistent_logout` recria a aplicação com o mesmo PostgreSQL e confirma que o token revogado continua inválido.
+```text
+.venv/bin/python -m pytest --cov=src/task_api --cov-report=term-missing --cov-report=xml:artifacts/coverage.xml --cov-report=html:artifacts/htmlcov --cov-report=json:artifacts/coverage-lines.json --cov-fail-under=60 --junitxml=artifacts/junit.xml -q
+```
 
-## Cobertura de cenários e limites
+Comando exato da medição separada de ramificações:
 
-`tests/unit` cobre política de status/permissão, Argon2id, validação JWT, configuração/segredos e schemas. `tests/architecture` inspeciona imports absolutos/relativos e rotas. `tests/integration` cobre HTTP e transações PostgreSQL reais: privacidade, papel atual, PUT atômico, comentários vinculados ao pai, filtros/contagem, exclusão lógica, revogação, rollback e corridas de cadastro, último admin e atribuição/desativação com conexões independentes. Os nomes exatos estão ligados aos IDs em `matriz-aceite.md`.
+```text
+.venv/bin/python -m pytest --cov=src/task_api --cov-branch --cov-report=json:artifacts/coverage-branches.json -q
+```
 
-O módulo CLI aparece com 0% de linhas automatizadas no relatório, embora tenha sido exercitado manualmente. A meta de 80% global foi superada sem excluir esse módulo. As corridas críticas foram executadas uma vez na suíte local final; não há ensaio prolongado de carga. Docker Compose, macOS e reprodução a partir de clone limpo com Docker **não foram executados** neste ambiente; seus arquivos e comandos existem, mas precisam ser verificados nessas plataformas antes de afirmar suporte completo. Não há deploy público.
+No Windows ou em outro ambiente gerenciado por uv, substitua `.venv/bin/python -m` por `uv run` para executar os mesmos módulos instalados. O guia de [execução](execucao.md) detalha a configuração.
 
-## Publicação e CI no GitHub
+A razão de ramificações é `covered_branches / num_branches`. O percentual combinado de linhas e ramificações do segundo JSON não é a cobertura de linhas do enunciado nem a cobertura pura de branches. O gate continua medindo somente linhas.
 
-Em 24/09/2026, após autorização da autora, `git push --atomic -u origin main feat/task-management-api` terminou com código 0. O remoto não tinha branches antes do envio. `git ls-remote` confirmou `main` em `a10973440c754246c69324b284e0791978685fa9` e `feat/task-management-api` em `d63a529e6b3e7aafbefe1aa72d52fc9bae6d02ee`. A base documental permanece em `main`; a implementação está na feature. Nenhum merge ou PR foi realizado.
+As duas execuções finais emitiram um aviso de depreciação do uso de HTTPX pelo TestClient na versão fixada de Starlette. O aviso não impediu os testes e não foi ocultado. Não foram alteradas dependências para eliminá-lo.
 
-A [execução de CI 36049791996](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/36049791996), sobre `d63a529`, foi consultada pela API do GitHub e terminou com `status=completed`, `conclusion=success`. No runner `ubuntu-latest`, com serviço PostgreSQL 17, passaram instalação do Python 3.13, `uv sync --locked`, Ruff check/format, Alembic upgrade, suíte com gate de linhas, suíte separada com branches e upload dos artifacts. Os percentuais acima continuam identificados como medições locais; esta verificação remota confirmou o sucesso das etapas, sem extrair novas métricas dos artifacts. O workflow não executa o build da imagem da aplicação nem o Compose; essas verificações continuam pendentes.
+## Cenários acrescentados e regressões corrigidas
+
+- **HTTP e logs:** 404 e 405 com envelope, preservação de `Allow`, 401 com desafio Bearer mesmo sem cabeçalho explícito, 500 com ID de correlação no cabeçalho/corpo/logs, códigos internos desconhecidos tratados com falha segura, JSON malformado e campos extras sem exposição de valores. O log de exceção inclui tipo, arquivo, função e linha, sem mensagem original ou variáveis locais.
+- **Migrações e logging:** a execução de Alembic no processo de testes não desativa mais o logger da API. A suíte completa revelou esse comportamento, que não aparecia na execução apenas unitária. A correção usa `disable_existing_loggers=False`.
+- **Configuração:** destino PostgreSQL explícito, nomes distintos apesar de aliases/credenciais diferentes, rejeição de nomes codificados e de parâmetros que possam substituir o destino, validação de opções aceitas e duração JWT positiva.
+- **CLI:** entrada oculta/ambiente, validação sanitizada, descarte do engine, seed restrito ao ambiente e administrador ativo. Os testes PostgreSQL confirmam que repetir o bootstrap e o seed preserva IDs, papéis e hashes existentes e que uma conta comum não é promovida silenciosamente.
+- **Scripts de entrega:** cinco casos unitários asseguram que exportar relatórios não oculta falhas dos testes e que o script exclusivo de CI recusa execução local antes de iniciar containers. Esses testes dos helpers usam processos simulados; não representam execução Docker.
+
+Os testes anteriores de autorização, privacidade, filtros, sessão persistente, rollback e concorrência foram mantidos. Somente as asserções internas de três cenários foram adaptadas do status HTTP para o código semântico de `AppError`; os resultados HTTP continuam verificados nas rotas.
+
+A rastreabilidade detalhada está em [matriz de aceite](matriz-aceite.md).
+
+## Smoke HTTP e reinício efetivamente executados
+
+O cenário de `scripts/ci_docker.py::smoke_api` foi executado contra Uvicorn e PostgreSQL **nativos**, substituindo apenas os adaptadores de execução da CLI e de reinício do container por subprocessos locais. Foram verificados:
+
+1. `/health`, `/ready`, Swagger e OpenAPI por HTTP real.
+2. Bootstrap e seed executados duas vezes; novas senhas fornecidas na repetição não substituíram as credenciais originais.
+3. Papéis, atribuição, bloqueio atômico de PUT proibido, conclusão e timestamp.
+4. Comentários com autoria/data e filtros combinados.
+5. Logout e rejeição imediata do JWT.
+6. Encerramento e novo processo Uvicorn usando o mesmo PostgreSQL; o JWT revogado continuou rejeitado, outra sessão permaneceu válida e tarefa/comentário persistiram.
+7. Exclusão do comentário e da tarefa.
+
+Essa execução comprova o fluxo nativo e o cenário HTTP reutilizado. **Não comprova build de imagem, montagem de volumes ou inicialização via Docker Compose.**
+
+## Evidências anteriores e CI
+
+As métricas anteriores são preservadas como histórico, sem atribuí-las aos novos ajustes:
+
+| Execução | Código | Testes | Linhas | Branches |
+|---|---|---:|---:|---:|
+| Registro local Windows, 24/09/2026 | `120129a` | 36 | 848/928 = 91,38% | 96/140 = 68,57% |
+| GitHub Actions da main, 23/11/2026 | `f598a538` | 36 | 851/928 = 91,70% | 96/140 = 68,57% |
+| Ajustes locais deste documento | Base `f598a538` + arquivos do pacote | 132 | 987/1012 = 97,53% | 150/176 = 85,23% |
+
+A [execução 45279118209](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45279118209) da `main` terminou com sucesso. Os logs e o artifact `coverage` dessa execução foram conferidos: instalação, Ruff, migração, testes e gate aprovados. Esse workflow anterior executava somente o job nativo com serviço PostgreSQL; não construía a imagem da API.
+
+O workflow atualizado acrescenta o job `docker`, com build, migração, bootstrap/seed, HTTP, reinício, suíte na imagem e exportação dos relatórios. **O novo job só poderá ser confirmado após o commit/push da autora e uma execução bem-sucedida no GitHub.**
+
+## Relatórios e limites de entrega
+
+A execução gera XML, JSON, HTML e JUnit em `artifacts/`, ignorado pelo Git. O pacote de ajustes inclui uma cópia das evidências em `evidencias/`; elas acompanham a entrega para conferência e não precisam ser adicionadas ao commit. O helper Docker exporta para `artifacts/docker/`.
+
+Docker não estava instalado no ambiente de preparação: build/Compose e o job novo permanecem **não executados**. O guia macOS também não foi executado. O registro antigo do Windows corresponde à versão histórica, sem presumir que valide os novos ajustes nessa plataforma. Não houve ensaio prolongado de carga ou deploy público.
+
+O vídeo demonstrativo de até 15 minutos ainda precisa ser produzido e vinculado à entrega. O [roteiro](roteiro-demonstracao.md) orienta sua gravação.

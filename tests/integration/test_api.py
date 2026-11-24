@@ -151,11 +151,11 @@ def test_concurrent_admin_demotions_keep_one_active(api):
             service.change_role(actor, actor.id, Role.USER)
             return "ok"
         except AppError as exc:
-            return exc.status
+            return exc.code
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         outcomes = list(pool.map(demote, [first, second]))
-    assert sorted(outcomes, key=str) == sorted(["ok", 409], key=str)
+    assert sorted(outcomes) == ["CONFLICT", "ok"]
     with service.uow_factory() as uow:
         assert uow.users.count_admins() == 1
 
@@ -185,7 +185,7 @@ def test_concurrent_assignment_and_deactivation_leave_no_open_assignment(api):
                 },
             )
         except AppError as exc:
-            assert exc.status == 409
+            assert exc.code == "CONFLICT"
 
     def deactivate():
         barrier.wait()
@@ -380,13 +380,13 @@ def test_duplicate_registration_race_returns_one_conflict(api):
         barrier.wait()
         try:
             service.register("Racer", "racer@example.org", "A safe test password 123")
-            return 201
+            return "created"
         except AppError as exc:
-            return exc.status
+            return exc.code
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         outcomes = list(pool.map(lambda _index: create(), range(2)))
-    assert sorted(outcomes) == [201, 409]
+    assert sorted(outcomes) == ["CONFLICT", "created"]
 
 
 def test_comment_author_only_and_deleted_parent_is_hidden(api):

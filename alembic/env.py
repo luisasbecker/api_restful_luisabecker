@@ -10,7 +10,8 @@ from task_api.infrastructure.persistence.models import Base
 config = context.config
 load_dotenv()
 if config.config_file_name:
-    fileConfig(config.config_file_name)
+    # In-process migrations must not disable the API logger used by integration tests.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 url = os.environ.get("DATABASE_URL")
 if not url or not url.startswith("postgresql+psycopg://"):
     raise RuntimeError("DATABASE_URL PostgreSQL com psycopg é obrigatória para migrações.")

@@ -1,9 +1,9 @@
 # Matriz de requisitos e critérios de aceite
 
-Referência normativa: `docs/especificacao.md`, versão 1.0.
-Estado inicial: **nenhum item abaixo foi implementado ou validado por este pacote**. Esta matriz é um plano de verificação, não um relatório de execução.
+Referência normativa: `docs/especificacao.md`, versão 1.1, de 23/11/2026.
+As tabelas iniciais definem os critérios; a seção de rastreabilidade registra a implementação e as verificações. Os ajustes desta revisão foram preparados sobre a `main` no commit `f598a538d959b12df628f90d104e12c923db6d87`, resultante do merge do PR #1. Os resultados locais dos ajustes e os resultados remotos anteriores são identificados separadamente em `docs/testes.md` e `docs/progresso.md`.
 
-O Codex deverá conservar os identificadores e preencher evidências depois da implementação: arquivo/caso de uso, teste com nome real, comando/resultado e seção de documentação. Marcar um requisito como concluído exige comportamento e evidência, não apenas existência de um arquivo. Não substituir requisitos por mocks na integração.
+Conservar os identificadores e atualizar evidências após cada implementação: arquivo/caso de uso, teste com nome real, comando/resultado e seção de documentação. Marcar um requisito como concluído exige comportamento e evidência, não apenas existência de um arquivo. Não substituir requisitos por mocks na integração.
 
 ## Requisitos obrigatórios e complementares
 
@@ -73,7 +73,7 @@ O Codex deverá conservar os identificadores e preencher evidências depois da i
 | NFR07 | Dependências reproduzíveis | pyproject e uv.lock coerentes; sync locked funciona; versões reais registradas | Comando com código de saída zero |
 | NFR08 | Docker/execução | Build limpo, banco saudável, migração única, API pronta, persistência em reinício e testes isolados | Logs de comandos e smoke test |
 | NFR09 | Windows/macOS | Comandos PowerShell e zsh/bash; sem dependência obrigatória de Make/WSL; distinguir validado de previsto | Guias revisados; execução no SO disponível |
-| NFR10 | Proteção do banco de testes | APP_ENV/test URL/sufixo corretos; configuração insegura recusada antes de limpar | Testes das salvaguardas |
+| NFR10 | Proteção do banco de testes | APP_ENV=test; nome terminado em _test e diferente do banco da aplicação, independentemente de host/credenciais; URLs e query validadas antes de migrar/limpar | Testes das salvaguardas |
 | NFR11 | CI | Lint, formatação, migrações, PostgreSQL, testes e gate; artifacts; sem ignorar falhas | Workflow e run real quando executado |
 | DOC01 | Visão geral/instalação | README permite entender e iniciar o projeto a partir de clone limpo | Revisão executando comandos |
 | DOC02 | Decisões arquiteturais | ADRs explicam escolhas e alternativas sem afirmar padrões ausentes | Correspondência documento/código |
@@ -90,7 +90,7 @@ Criar uma seção por execução relevante, contendo data, ambiente, comando, c�
 
 ## Rastreabilidade da implementação local
 
-Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. As métricas e comandos datados estão em `docs/testes.md`. A execução de Docker Compose e macOS permanece separadamente pendente; existência de configuração não é validação. A publicação e a CI remota estão registradas em `docs/progresso.md` e `docs/testes.md`.
+Abreviações: `I` = `tests/integration/test_api.py`; `C` = `tests/integration/test_cli.py`; `U` = `tests/unit/`; `A` = `tests/architecture/test_dependencies.py`. Em 23/11/2026, passaram 132 testes locais (112 unitários, 18 de integração e 2 arquiteturais), com PostgreSQL 17.12 real em Linux. As métricas e os comandos datados estão em `docs/testes.md`. Docker Compose e macOS permanecem pendentes; existência de configuração não é validação. A publicação e a CI remota estão registradas em `docs/progresso.md` e `docs/testes.md`.
 
 | ID | Código principal | Teste ou verificação observada | Documento | Estado |
 |---|---|---|---|---|
@@ -113,18 +113,18 @@ Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` =
 | AUX01 | `uow.py`, `routes.py` | `I::test_validation_rejects_naive_time_unknown_query_and_server_fields` | `api.md` | Testado |
 | AUX02 | `service.py`, `uow.py` | `I::test_concurrent_admin_demotions_keep_one_active`, `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `api.md` | Testado |
 | AUX03 | `service.py`, `security.py` | `I::test_password_role_and_soft_delete_preserve_history` | `api.md` | Testado |
-| AUX04 | `main.py` | `U/test_http_contract.py::test_health_and_openapi_do_not_require_database`, `test_readiness_reports_database_unavailable`; smoke HTTP localhost 200 | `execucao.md` | Testado no Windows |
+| AUX04 | `main.py` | `U/test_http_contract.py::test_health_and_openapi_do_not_require_database`, `test_readiness_reports_database_unavailable`; smoke HTTP contra Uvicorn | `execucao.md` | Testado nativamente em Linux |
 | SEC01 | `security.py` | `U/test_security.py::test_token_requires_all_claims_and_fixed_algorithm`, `test_token_rejects_invalid_claims_and_algorithm` | `adr/0003-jwt-sessoes.md` | Testado |
 | SEC02 | `service.py`, `uow.py` | `I::test_jwt_requires_session_and_role_is_current`, `I::test_password_role_and_soft_delete_preserve_history` | `adr/0003-jwt-sessoes.md` | Testado |
-| SEC03 | `uow.py` | `I::test_registration_profile_and_persistent_logout` recria a aplicação | `adr/0003-jwt-sessoes.md` | Testado |
+| SEC03 | `uow.py` | `I::test_registration_profile_and_persistent_logout` recria a aplicação; smoke nativo reinicia o processo Uvicorn e confirma a revogação | `adr/0003-jwt-sessoes.md`, `testes.md` | Testado; contêiner ainda não executado |
 | SEC04 | `domain/policy.py`, `service.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_comment_parent_authorization_and_guest` | `api.md` | Testado |
 | SEC05 | `service.py` | `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `api.md` | Testado |
 | SEC06 | `domain/policy.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
 | SEC07 | `domain/policy.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped` | `api.md` | Testado |
 | SEC08 | `uow.py` | `I::test_assignee_put_is_atomic_and_visibility_filters_are_scoped`, `I::test_filters_due_before_are_exclusive_and_scoped` | `api.md` | Testado |
-| SEC09 | `main.py`, `settings.py` | `U/test_http_contract.py::test_public_registration_rejects_role_without_echoing_secret`, `U/test_settings.py::test_invalid_configuration_error_does_not_echo_secret` | `api.md` | Testado |
+| SEC09 | `main.py`, `settings.py`, `presentation/cli.py` | `U/test_http_contract.py::test_unexpected_error_has_correlated_safe_logs_and_does_not_escape`, `test_malformed_json_and_unknown_fields_do_not_expose_input`; `U/test_settings.py::test_invalid_configuration_error_does_not_echo_secret`; `U/test_cli_commands.py::test_main_sanitizes_failures_and_disposes_engine` | `api.md` | Testado |
 | SEC10 | `schemas.py` | `I::test_validation_rejects_naive_time_unknown_query_and_server_fields`, `U/test_http_contract.py::test_public_registration_rejects_role_without_echoing_secret` | `api.md` | Testado |
-| SEC11 | `presentation/cli.py`, `service.py` | CLI `bootstrap-admin` e `seed-demo` executados localmente | `execucao.md` | Testado localmente |
+| SEC11 | `presentation/cli.py`, `service.py` | `C::test_bootstrap_is_idempotent_and_keeps_existing_credentials`, `test_bootstrap_does_not_promote_existing_user`, `test_seed_creates_roles_and_preserves_existing_accounts`; CLI executada no smoke nativo | `execucao.md` | Testado com PostgreSQL real |
 | NEG01 | `uow.py`, migração | `I::test_password_role_and_soft_delete_preserve_history` | `modelagem.md` | Testado |
 | NEG02 | `uow.py` | `I::test_duplicate_registration_race_returns_one_conflict` | `arquitetura.md` | Testado |
 | NEG03 | `service.py` | `I::test_guest_historical_creator_is_read_only_and_last_admin_is_protected` | `arquitetura.md` | Testado |
@@ -147,19 +147,28 @@ Abreviações: `I` = `tests/integration/test_api.py`; `U` = `tests/unit/`; `A` =
 | NFR01 | `A::test_inner_layers_do_not_import_framework_or_adapters`, `test_routes_do_not_access_orm_or_sql`; `arquitetura.md` | Testado |
 | NFR02 | `alembic/versions/0001_initial.py`; `alembic upgrade head` e `alembic check` em PostgreSQL 17; `modelagem.md` | Testado localmente |
 | NFR03 | Suíte completa contra banco `_test`; `testes.md` | Testado localmente |
-| NFR04 | Relatórios em `artifacts/`; números em `testes.md` | Testado localmente |
-| NFR05 | `main.py`; `test_public_registration_rejects_role_without_echoing_secret`; `api.md` | Testado parcialmente: logs estruturados revisados, sem teste de todos os eventos |
+| NFR04 | Relatórios da revisão local; `testes.md`: 987/1012 linhas e 150/176 ramificações | 97,53% de linhas; 85,23% de ramificações |
+| NFR05 | `main.py`, `alembic/env.py`; `U/test_http_contract.py::test_router_errors_use_envelope_and_request_id`, `test_framework_http_error_keeps_auth_header_without_echoing_detail`, `test_unexpected_error_has_correlated_safe_logs_and_does_not_escape` | Testados envelope 404/405/500, cabeçalhos, correlação, sigilo e preservação dos loggers após migrações |
 | NFR06 | `routes.py`, `schemas.py`; `test_health_and_openapi_do_not_require_database`; `api.md` | Testado localmente |
-| NFR07 | `pyproject.toml`, `uv.lock`; `uv sync --locked`; `execucao.md` | Testado Windows |
-| NFR08 | `Dockerfile`, `compose.yaml`, `execucao.md` | Não executado: Docker ausente neste host |
-| NFR09 | Comandos PowerShell em `execucao.md` e PostgreSQL local executados; guia macOS no mesmo arquivo | Windows parcial; macOS não executado |
-| NFR10 | `settings.py`, `tests/integration/conftest.py`; `test_rejects_unsafe_test_database`; `execucao.md` | Testado |
-| NFR11 | `.github/workflows/ci.yml`; execução `36049791996`, commit `d63a529` | CI concluída com sucesso no GitHub; lint, migração, testes, gate e artifacts aprovados |
+| NFR07 | `pyproject.toml`, `uv.lock`; dependências bloqueadas instaladas em Python 3.13.5 com uv 0.13.9; `testes.md` | Testado nativamente em Linux; lockfile preservado |
+| NFR08 | `Dockerfile`, `compose.yaml`, `scripts/ci_docker.py`, `scripts/run_compose_tests.py`; `U/test_delivery_scripts.py` | Scripts testados; smoke HTTP validado nativamente. Build/Compose pendentes: Docker ausente |
+| NFR09 | Comandos PowerShell e zsh/bash em `execucao.md`; ambiente atual Linux | Windows histórico; ajustes atuais não reexecutados em Windows/macOS |
+| NFR10 | `settings.py`; `U/test_settings.py::test_rejects_same_database_despite_credentials_host_or_url_spelling`, `test_rejects_ambiguous_or_malformed_database_urls`, `test_rejects_query_overrides_and_ambiguous_options`; fixture PostgreSQL | Testado; 70 casos de configuração/salvaguardas |
+| NFR11 | [CI 45279118209](https://github.com/luisasbecker/api_restful_luisabecker/actions/runs/45279118209) da base `f598a538`; novo job `docker` no workflow | Base remota aprovada com 36 testes/91,70% de linhas. CI dos ajustes e job Docker aguardam publicação/execução |
 | DOC01 | `README.md`, `execucao.md` | Escrito; clone limpo com Docker não validado |
 | DOC02 | `arquitetura.md`, `adr/` | Revisado localmente |
 | DOC03 | `modelagem.md`, migração, `alembic check` | Revisado/testado |
-| DOC04 | `arquitetura.md`, `api.md`, `examples/api.http` | Escrito; exemplos não executados por cliente `.http` |
-| DOC05 | `execucao.md`, `compose.yaml` | Parcial: Docker/macOS não executados |
+| DOC04 | `arquitetura.md`, `api.md`, `examples/api.http`, smoke HTTP | Fluxo executado contra Uvicorn; arquivo `.http` não executado por cliente próprio |
+| DOC05 | `execucao.md`, `compose.yaml`, scripts de execução/exportação | Execução nativa validada; Docker/macOS pendentes |
 | DOC06 | `testes.md` e relatórios de cobertura | Testado localmente |
-| DEL01 | `roteiro-demonstracao.md`; fluxos cobertos em testes HTTP e CLI | Roteiro não executado integralmente à mão |
-| DEL02 | Branch `feat/task-management-api`; hashes de `main` e feature conferidos por `git ls-remote`; `progresso.md` | Push autorizado concluído; sem PR/merge |
+| DEL01 | `roteiro-demonstracao.md`; fluxos cobertos em testes HTTP e CLI | Vídeo demo de até 15 minutos ainda pendente; roteiro disponível |
+| DEL02 | Merge do PR #1 na `main`, commit `f598a538d959b12df628f90d104e12c923db6d87`; `progresso.md` | Merge confirmado. Ajustes desta revisão entregues para commit pela autora; sem nova escrita remota |
+
+### Regressões acrescentadas nesta revisão
+
+| Aceite | Evidência acrescentada | Resultado local |
+|---|---|---|
+| NFR05 / SEC09 | `U/test_http_contract.py`: erros de roteamento/framework, JSON inválido, requestId/cabeçalhos e logs 500 sem segredos | Passou |
+| NFR10 / SEC09 | `U/test_settings.py`: aliases de host, credenciais diferentes, URL/query ambíguas, identidade real do SQLAlchemy e validade positiva do JWT | Passou |
+| SEC11 / DOC05 | `U/test_cli_commands.py` e `C`: prompt, validação, descarte do engine, mensagens sanitizadas, bootstrap/seed idempotentes e propagação de falhas | Passou; CLI com 69/70 linhas cobertas (98,57%) |
+| NFR08 / NFR11 | `U/test_delivery_scripts.py::test_report_export_never_hides_a_failed_suite`, `test_docker_ci_refuses_local_execution_before_starting_containers` | Passou; não substitui execução Docker |
