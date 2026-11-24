@@ -2,6 +2,9 @@
 
 Backend acadêmico em Python 3.13/FastAPI e PostgreSQL 17. Implementa as 11 operações obrigatórias de usuários, autenticação e tarefas, com exatamente três complementares: **5 — papéis e permissões**, **6 — comentários em tarefas** e **8 — filtros avançados**. Não há frontend nem serviços externos. O mesmo banco atende todos os usuários; cada tarefa é visível apenas a criador, responsável ou administrador.
 
+## Apresentação:
+[Apresentação_APIRestful__Luisa__Becker](https://asavbrm-my.sharepoint.com/:v:/r/personal/luisasantos4_edu_unisinos_br/_layouts/15/stream.aspx?id=%2Fpersonal%2Fluisasantos4_edu_unisinos_br%2FDocuments%2FGrava%C3%A7%C3%B5es%2FApresentacao_APIRestful__Luisa_Becker-20261124_000125-Grava%C3%A7%C3%A3o%20de%20Reuni%C3%A3o.mp4&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&share=cQosrOsVPxOWQbxxlNT7OAbwEgUDzcq0Ip8PcxCZHni6Lc-EDA)
+
 ## Início rápido com Docker Compose
 
 Pré-requisitos: Git e Docker Engine/Desktop com Compose v2. O build e a execução via Compose foram validados em Linux pelo job `docker` do GitHub Actions; veja as [evidências de testes](docs/testes.md). A validação local desta revisão foi nativa em Linux.
